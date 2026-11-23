@@ -1,0 +1,48 @@
+server:
+  port: 8080
+  address: 0.0.0.0
+
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
+
+rb:
+  docker:
+    host: ${RB_DOCKER_HOST:unix:///var/run/docker.sock}
+    network: rb-net
+    # Windows Docker Desktop 上“端口映射 + host.docker.internal”不可靠；
+    # 默认改为容器网络直连（数据面同样在 rb-net 内，可直接访问容器 IP）。
+    use-port-mapping: ${RB_DOCKER_USE_PORT_MAPPING:false}
+  chromium:
+    # 浏览器运行镜像：自带 Xvfb + Chromium + CDP relay + 中文字体
+    image: ${RB_CHROMIUM_IMAGE:rb-chromium:131}
+    # 共享内存（/dev/shm）；1GB 足够 1080P 页面，生产环境可再调小
+    shm-size: ${RB_CHROMIUM_SHM_SIZE:1073741824}
+    # 平台访问的端口（容器内 relay），与 internal-cdp-port 成对出现
+    cdp-port: ${RB_CHROMIUM_CDP_PORT:9223}
+    # 容器内 Chromium DevTools 端口（只监听 127.0.0.1）
+    internal-cdp-port: ${RB_CHROMIUM_INTERNAL_CDP_PORT:9222}
+    # 全局出口代理；淘宝/京东必须使用住宅或移动代理，机房 IP 会被直接拦截
+    proxy: ${RB_CHROMIUM_PROXY:}
+    headless: ${RB_CHROMIUM_HEADLESS:false}
+    auto-pull: ${RB_CHROMIUM_AUTO_PULL:false}
+    # 单会话内存上限（字节），0 表示不限制；4GB 服务器建议 536870912
+    memory-bytes: ${RB_CHROMIUM_MEMORY_BYTES:0}
+  jwt:
+    secret: ${JWT_SECRET:dev-secret-key-must-be-at-least-32-bytes-long!!}
+    ttl-seconds: 300
+  session:
+    reconnect-window-seconds: 60
+    idle-timeout-seconds: 300
+    max-lifetime-seconds: 7200
+    watchdog-interval-ms: 30000
+  storage:
+    dir: ${RB_STORAGE_DIR:/app/data/sessions}
+  quota:
+    max-concurrent-per-user: 3
+  audit:
+    file: ${RB_AUDIT_FILE:/app/data/audit.log}
+  task:
+    dir: ${RB_TASK_DIR:/app/data/tasks}

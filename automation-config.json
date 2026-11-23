@@ -1,0 +1,32 @@
+{
+  "baidu": {
+    "url": "https://www.baidu.com",
+    "steps": [
+      "new Promise(r => setTimeout(r, 2000));",
+      "(function(){ var lb = document.querySelector('.s-top-login-btn'); var un = document.querySelector('.user-name'); return (lb && !un) ? 'NEED_LOGIN' : 'ALREADY_LOGGED_IN'; })();"
+    ]
+  },
+  "douyin": {
+    "url": "https://www.douyin.com",
+    "steps": [
+      "new Promise(r => setTimeout(r, 3500));",
+      "(function(){ var visible = e => !!e && e.getClientRects().length > 0; var dialog = document.querySelector('[role=\"dialog\"], #login-panel-new'); if (visible(dialog)) return 'QR_READY:请用抖音 App 扫码'; var buttons = Array.from(document.querySelectorAll('button,a,[role=\"button\"]')); var login = buttons.find(e => visible(e) && /^(登录|立即登录|登录\\/注册)$/.test((e.innerText || '').trim())); if(login){ login.click(); return 'LOGIN_PANEL_OPENED_WAITING_FOR_QR'; } return 'LOGIN_STATE_UNKNOWN:请点击页面右上角登录'; })()"
+    ]
+  },
+  "taobao": {
+    "url": "https://login.taobao.com/havanaone/login/login.htm?bizName=taobao",
+    "prewarmUrl": "https://i.taobao.com/my_taobao.htm",
+    "steps": [
+      "new Promise(function(r){ setTimeout(r, 3000); });",
+      "(function(){ var href = location.href; var txt = (document.body && document.body.innerText ? document.body.innerText : '').slice(0, 2000); var ck = document.cookie || ''; var logged = /(^|;)\\s*(tracknick|lgc|unb)=[^;]+/.test(ck); if (/_____tmd_____|punish|captcha|verify/i.test(href) || /滑动验证|访问受限|环境异常|安全验证|请按住滑块|请输入验证码/.test(txt)) { return 'RISK_BLOCKED:' + href; } if (href.indexOf('login.taobao.com') < 0) { return 'NEED_LOGIN_PAGE:' + href; } var qr = document.querySelector('#qrcode img, .qrcode-img img, #J_QRCodeImg img, [class*=\"qrcode\"] img, #login-qrcode, canvas[class*=\"qr\"]'); var qrText = /扫一扫|扫码登录|二维码登录/.test(txt); if (qr || qrText) { return 'QR_READY:请用手机淘宝 App 扫码'; } var tab = [].slice.call(document.querySelectorAll('a,div,li,span,button')).filter(function(el){ var t = (el.innerText || '').trim(); return t.indexOf('扫码') >= 0 || t.indexOf('二维码') >= 0; })[0]; if (tab) { tab.click(); return 'QR_TAB_CLICKED:请用手机淘宝 App 扫码'; } return 'QR_NOT_FOUND:' + href; })()"
+    ]
+  },
+  "jd": {
+    "url": "https://passport.jd.com/new/login.aspx",
+    "prewarmUrl": "https://www.jd.com",
+    "steps": [
+      "new Promise(function(r){ setTimeout(r, 3000); });",
+      "(function(){ var href = location.href; var txt = (document.body && document.body.innerText ? document.body.innerText : '').slice(0, 2000); if (/verify|risk|captcha|punish/i.test(href) || /安全验证|请按住滑块|环境异常|请输入验证码/.test(txt)) { return 'RISK_BLOCKED:' + href; } if (href.indexOf('passport.jd.com') < 0) { return 'NEED_LOGIN_PAGE:' + href; } var qr = document.querySelector('#qrcode img, .qrcode-img img, #qrCode img, [class*=\"qrcode\"] img'); var qrText = /扫码(?:安全)?登录|二维码/.test(txt); if (qr || qrText) { return 'QR_READY:请用京东 App 扫码'; } var tab = [].slice.call(document.querySelectorAll('a,div,li,span,button')).filter(function(el){ var t = (el.innerText || '').trim(); return t.indexOf('扫码') >= 0 || t.indexOf('二维码') >= 0; })[0]; if (tab) { tab.click(); return 'QR_TAB_CLICKED:请用京东 App 扫码'; } return 'QR_NOT_FOUND:' + href; })()"
+    ]
+  }
+}

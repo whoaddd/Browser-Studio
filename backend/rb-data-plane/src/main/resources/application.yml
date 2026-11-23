@@ -1,0 +1,17 @@
+server:
+  port: 8081
+  address: 0.0.0.0
+
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
+
+rb:
+  jwt:
+    secret: ${JWT_SECRET:dev-secret-key-must-be-at-least-32-bytes-long!!}
+    ttl-seconds: 300
+  # 必须与挂载目录一致：./data/sessions -> /app/data/sessions
+  storage:
+    dir: ${RB_STORAGE_DIR:/app/data/sessions}

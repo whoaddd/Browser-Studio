@@ -1,0 +1,17 @@
+{
+  "URLBlocklist": [
+    "*"
+  ],
+  "URLAllowlist": [
+    "http:*",
+    "https:*",
+    "ws:*",
+    "wss:*",
+    "about:*",
+    "data:*",
+    "blob:*",
+    "file:*",
+    "chrome:*",
+    "devtools:*"
+  ]
+}

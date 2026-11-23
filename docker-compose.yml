@@ -1,0 +1,102 @@
+services:
+  redis:
+    image: redis:latest
+    container_name: rb-redis
+    ports:
+      - "127.0.0.1:6380:6379"
+    volumes:
+      - ./data/redis:/data
+    command: redis-server --appendonly yes
+    networks:
+      - rb-net
+    restart: unless-stopped
+
+  control-plane:
+    build:
+      context: ./backend
+      dockerfile: rb-control-plane/Dockerfile
+    image: rb-control-plane:v1
+    container_name: rb-control-plane
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-key-must-be-at-least-32-bytes-long!!}
+      - TZ=Asia/Shanghai
+      # 浏览器容器与平台同处 rb-net，数据面直接按容器 IP 访问 CDP；
+      # Windows Docker Desktop 下端口映射 + host.docker.internal 不可靠，故默认关闭。
+      - RB_DOCKER_USE_PORT_MAPPING=${RB_DOCKER_USE_PORT_MAPPING:-false}
+      - RB_DOCKER_HOST=unix:///var/run/docker.sock
+      # 浏览器运行镜像（由 docker/chromium 构建）；缺失时会返回 503 并给出构建命令
+      - RB_CHROMIUM_IMAGE=${CHROMIUM_IMAGE:-rb-chromium:131}
+      - RB_CHROMIUM_CDP_PORT=${RB_CHROMIUM_CDP_PORT:-9223}
+      - RB_CHROMIUM_INTERNAL_CDP_PORT=${RB_CHROMIUM_INTERNAL_CDP_PORT:-9222}
+      # 淘宝/京东必须配住宅或移动代理，否则机房 IP 会被风控直接拦截
+      - RB_CHROMIUM_PROXY=${RB_CHROMIUM_PROXY:-}
+      - RB_CHROMIUM_MEMORY_BYTES=${RB_CHROMIUM_MEMORY_BYTES:-0}
+      - RB_AUDIT_FILE=/data/audit.log
+      - RB_TASK_DIR=/data/tasks
+      - JAVA_OPTS=-Xms128m -Xmx384m -XX:+UseSerialGC
+    volumes:
+      - //var/run/docker.sock:/var/run/docker.sock
+      - ./data:/data
+    networks:
+      - rb-net
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  data-plane:
+    build:
+      context: ./backend
+      dockerfile: rb-data-plane/Dockerfile
+    image: rb-data-plane:v1
+    container_name: rb-data-plane
+    ports:
+      - "127.0.0.1:8081:8081"
+    environment:
+      - REDIS_HOST=redis
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-key-must-be-at-least-32-bytes-long!!}
+      - TZ=Asia/Shanghai
+      # 【关键】必须指向挂载点，旧配置写成 /data/sessions 会导致凭证写进容器临时目录而丢失
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - RB_STORAGE_DIR=/app/data/sessions
+      - RB_AUTOMATION_CONFIG=/app/data/automation-config.json
+      # 新建会话默认落地站点；淘宝/京东请通过自动化下拉框切换
+      - RB_START_SITE=${RB_START_SITE:-baidu}
+      - RB_START_URL=${RB_START_URL:-https://www.baidu.com}
+      # UA 必须与镜像内 Chromium 版本一致（rb-chromium:131 -> Chrome/131.0.6778.33）
+      - RB_CHROMIUM_USER_AGENT=${RB_CHROMIUM_USER_AGENT:-Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36}
+      - RB_CHROMIUM_VERSION=${RB_CHROMIUM_VERSION:-131.0.6778.33}
+      - RB_TIMEZONE=${RB_TIMEZONE:-Asia/Shanghai}
+      - RB_ANTI_DETECT=${RB_ANTI_DETECT:-true}
+      - JAVA_OPTS=-Xms128m -Xmx384m -XX:+UseSerialGC -Djdk.httpclient.allowRestrictedHeaders=host
+    volumes:
+      - ./data/sessions:/app/data/sessions
+      - ./automation-config.json:/app/data/automation-config.json:ro
+    networks:
+      - rb-net
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: rb-frontend:v1
+    container_name: rb-nginx
+    ports:
+      - "80:80"
+    networks:
+      - rb-net
+    depends_on:
+      - control-plane
+      - data-plane
+    restart: unless-stopped
+
+networks:
+  rb-net:
+    driver: bridge
+    name: rb-net

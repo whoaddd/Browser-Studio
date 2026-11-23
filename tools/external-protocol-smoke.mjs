@@ -1,0 +1,18 @@
+import fs from 'node:fs';
+const targets=await(await fetch('http://127.0.0.1:9223/json/list')).json();const target=targets.find(t=>t.type==='page');
+const ws=new WebSocket('ws://127.0.0.1:9223'+new URL(target.webSocketDebuggerUrl).pathname);let next=1;const pending=new Map();const errors=[];
+ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.method==='Runtime.exceptionThrown')errors.push(m.params.exceptionDetails.text);if(m.id&&pending.has(m.id)){const p=pending.get(m.id);pending.delete(m.id);clearTimeout(p.timer);m.error?p.reject(Error(JSON.stringify(m.error))):p.resolve(m.result)}};
+await new Promise((r,j)=>{ws.onopen=r;ws.onerror=j});
+const send=(method,params={})=>new Promise((resolve,reject)=>{const id=next++;const timer=setTimeout(()=>{pending.delete(id);reject(Error('timeout '+method))},20000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params}))});
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));const evaluate=async expression=>(await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true})).result?.value;
+const shot=async name=>{const r=await send('Page.captureScreenshot',{format:'png'});fs.writeFileSync('/tmp/'+name+'.png',Buffer.from(r.data,'base64'))};
+await send('Runtime.enable'); await send('Page.enable');
+const url='data:text/html,'+encodeURIComponent('<html><body><button style="position:fixed;left:20px;top:20px;width:150px;height:80px" onclick="window.clicks=(window.clicks||0)+1">TEST</button></body></html>');
+await send('Page.navigate',{url}); await sleep(500);
+await send('Runtime.evaluate',{expression:"location.href='snssdk1128://test-external-protocol-blocked'",userGesture:true});
+await sleep(500); await send('Page.navigate',{url}); await sleep(500);
+await send('Input.dispatchMouseEvent',{type:'mousePressed',x:65,y:55,button:'left',buttons:1,clickCount:1});
+await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:65,y:55,button:'left',buttons:0,clickCount:1});
+await sleep(300); const clicks=await evaluate('window.clicks||0');
+console.log(JSON.stringify({clicks,externalProtocolDidNotBlockInput:clicks===1}));
+ws.close(); if(clicks!==1)process.exitCode=1;

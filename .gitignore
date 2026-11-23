@@ -1,0 +1,44 @@
+# ===== Java / Maven =====
+backend/**/target/
+backend/**/*.class
+backend/**/*.jar
+backend/**/*.log
+
+# ===== Node / 前端 =====
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/*.log
+
+# ===== 运行时数据 =====
+backend/data/
+/data/
+**/data/sessions/
+**/data/tasks/
+*.jsonl
+/.tmp-session.json
+/backend.zip
+/frame-1.jpg
+/taobao-login.png
+/backend/-H
+/backend/chromium-cjk/
+/docs/login-validation-2026-11-17.md
+/docs/douyin-ui-performance.md
+/docs/taobao-jd-login.md
+
+# ===== 环境变量与密钥 =====
+.env
+.env.*
+*.pem
+*.key
+**/application-local.yml
+
+# ===== IDE =====
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
